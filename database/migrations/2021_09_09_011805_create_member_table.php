@@ -14,14 +14,15 @@ class CreateMemberTable extends Migration
     public function up()
     {
         Schema::create('member', function (Blueprint $table) {
-            $table->id('id');
+            $table->id();
             $table->string('name');
-            $table->timestamps('signin');
-            $table->timestamps('signout');
-            $table->timestamps('dutydate');
-            $table->timestamps('lastdate');
+            $table->timestamp('signin');
+            $table->timestamp('signout');
             $table->text('remark');
             $table->timestamps();
+        });
+        Schema::table('member',function(Blueprint $table){
+            $table->varchar('userid');
         });
     }
 
