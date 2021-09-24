@@ -12,7 +12,16 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+use App\Http\Controllers\MemberController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/test', function () {
+    return view('test');
+});
+
+Route::get('/txt_output',[MemberController::class, 'txt_output']);
+Route::get('/day', [MemberController::class, 'get_date']);
+Route::post('/punch', [MemberController::class, 'store']);
