@@ -32,12 +32,13 @@ class MemberController extends Controller
 
         $table = DB::table('punch_records')
             ->whereNotNull("punch_in_time")
-            ->where('record_date', '=', $record_date);
+            ->where('record_date', $record_date);
 
         $table1 = DB::table('punch_records')
             ->whereNotNull("punch_out_time")
-            ->where('record_date', '=', $record_date)
+            ->where('record_date',  $record_date)
             ->union($table)
+            ->orderByRaw('user_id')
             ->get();
 
         $txt = "";
@@ -100,27 +101,36 @@ class MemberController extends Controller
         $now = date("Y-m-d H:i:s");
 
         $table = DB::table('punch_records')
-            ->where([['user_id', '=', $user_id], ['record_date', '=', $record_date]])
-            ->first();
+            ->where([
+                ['user_id',  $user_id],
+                ['record_date',  $record_date]
+            ])->first();
+
         $column = "";
         $record_id = $table;
         //取得員工簽到簽退表單
         if ($select == "get_member") {
+            // $test_table=DB::select('select * from punch_records where active = ?', [1]);
             $punchtable = DB::table('punch_records')
-                ->where('record_date', '=', $record_date);
+                ->where('record_date', $record_date);
             $index = DB::table('members')
                 ->leftJoinSub($punchtable, 'punch_records', function ($join) {
-                    $join->on('members.user_id', '=', 'punch_records.user_id');     //->on('members.user_id', '=', 'punch_records.user_id')
+                    $join->on('members.user_id',  'punch_records.user_id');
                 })
                 ->where('members.group_id', '!=', null)
                 ->orderBy('members.user_id', 'asc')
                 ->select('members.user_id', 'members.name', 'members.group_id', 'punch_records.remarks', 'punch_records.punch_in_time', 'punch_records.punch_out_time')
                 ->get();
+
             $test = "<table class='table table-bordered'><thead>
-            <tr>
-            <th colspan=5><h3>第A組</h3></th>
-            </tr>
-            <tr>
+                <tr>
+                <th colspan=5><h3>第A組</h3></th>
+                </tr>";
+            $test1 = "<table class='table table-bordered'><thead>
+                <tr>
+                <th colspan=5><h3>第B組</h3></th>
+                </tr>";
+            $title = "<tr>
             <th style='min-width: 80px;'>員編</th>
             <th style='min-width: 80px;'>姓名</th>
             <th style='min-width: 120px;'>簽到</th>
@@ -128,16 +138,10 @@ class MemberController extends Controller
             <th style='min-width: 120px;'>備註</th>
             </tr>
             </thead>";
-            $test1 = "<table class='table table-bordered'><thead>
-            <tr>
-            <th colspan=5><h3>第B組</h3></th>
-            </tr>
-            <tr><th style='min-width: 80px;'>員編</th>
-            <th style='min-width: 80px;'>姓名</th>
-            <th style='min-width: 120px;'>簽到</th>
-            <th style='min-width: 120px;'>簽退</th>
-            <th style='min-width: 120px;'>備註</th>
-            </tr></thead>";
+
+            $test .= $title;
+            $test1 .= $title;
+
             foreach ($index as $row) {
                 $user_id = $row->user_id;
                 $name = $row->name;
@@ -147,32 +151,25 @@ class MemberController extends Controller
                 $remarks = $row->remarks;
                 $status_in = '1';
                 $status_out = '2';
+                $content = '<tbody><tr>
+                <td class="align-middle">' . $user_id . '</td>
+                <td class="align-middle">' . $name . '</td>
+                <td class="align-middle">' . ($punch_in_time != "" ? $punch_in_time : '<button class="btn btn-success" onclick="punch(' . $user_id . ',' . $status_in . ')" >簽到</button>') . '
+                </td>
+                <td class="align-middle">' . ($punch_out_time != "" ? $punch_out_time : '<button class="btn btn-danger" onclick="punch(' . $user_id . ',' . $status_out . ')">簽退</button>') . '
+                </td>
+                <td class="align-middle">
+                <input type="text" class="form-control" value="' . $remarks . '" onchange="set_remark(' . $user_id . ',this.value)">
+                </td>
+                </tr></tbody>';
+
                 if ($group_id == 'A') {
-                    $test = $test . '<tbody><tr>
-                                <td class="align-middle">' . $user_id . '</td>
-                                <td class="align-middle">' . $name . '</td>
-                                <td class="align-middle">' . ($punch_in_time != "" ? $punch_in_time : '<button class="btn btn-success" onclick="punch(' . $user_id . ',' . $status_in . ')" >簽到</button>') . '
-                                </td>
-                                <td class="align-middle">' . ($punch_out_time != "" ? $punch_out_time : '<button class="btn btn-danger" onclick="punch(' . $user_id . ',' . $status_out . ')">簽退</button>') . '
-                                </td>
-                                <td class="align-middle">
-                                <input type="text" class="form-control" value="' . $remarks . '" onchange="set_remark(' . $user_id . ',this.value)">
-                                </td>
-                     </tr></tbody>';
+                    $test .= $content;
                 } elseif ($group_id == 'B') {
-                    $test1 = $test1 . '<tbody><tr>
-                                <td class="align-middle">' . $user_id . '</td>
-                                <td class="align-middle">' . $name . '</td>
-                                <td class="align-middle">' . ($punch_in_time != "" ? $punch_in_time : '<button class="btn btn-success" onclick="punch(' . $user_id . ',' . $status_in . ')" >簽到</button>') . '
-                                </td>
-                                <td class="align-middle">' . ($punch_out_time != "" ? $punch_out_time : '<button class="btn btn-danger" onclick="punch(' . $user_id . ',' . $status_out . ')">簽退</button>') . '
-                                </td>
-                                <td class="align-middle">
-                                <input type="text" class="form-control" value="' . $remarks . '" onchange="set_remark(' . $user_id . ',this.value)"></input>
-                                </td>
-                     </tr></tbody>';
+                    $test1 .= $content;;
                 }
             }
+
             $test .= "</table>";
             $test1 .= "</table>";
             $div = '<table><tbody>
@@ -185,6 +182,7 @@ class MemberController extends Controller
 
             return $div;
         }
+
         //新增更新簽到簽退時間
         if ($select == "punch") {
             if ($user_id != "" && $status != "" && $record_date != "" && ($status == '1' || $status == '2')) {
@@ -206,6 +204,7 @@ class MemberController extends Controller
             }
             return "OK";
         }
+
         //新增更新備註
         if ($select == "set_remark") {
             if ($record_id == "") {

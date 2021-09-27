@@ -422,8 +422,8 @@
                             <button class="btn btn-primary" onclick="txt_output()">匯出打卡機txt</button>
                         </div>
                     </div>
+                    <hr>
                     <div class="row mt-3" id="get_member" style="overflow: auto;">
-
                     </div>
                 </div>
                 <div class="card-footer text-center">
@@ -450,11 +450,9 @@
             $.ajax({
                     method: "POST",
                     url: "/punch",
-                    // url: "/member",
                     data: {
                         _token: "{{ csrf_token() }}",
                         select: 'get_member',
-                        // id: 'member',
                         record_date: record_date,
                     }
                 })
@@ -500,7 +498,6 @@
             $.ajax({
                 method:"POST",
                 url:"/punch",
-                // url:"/set_remarks",
                 data:{
                     select: 'set_remark',
                    _token: "{{ csrf_token() }}",
