@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\member;
+use App\Models\punch_record;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -30,17 +31,30 @@ class MemberController extends Controller
         //指定此方法的response header的內容配置為"附件"
         header('Content-Disposition: attachment; filename="' . $record_date . '打卡紀錄.txt"'); //Content-Disposition: attachment=>網頁內容配置為附件,filename=>檔名設置
 
-        $condition=[['record_date', '=',$record_date]];  //放SQL指令裡,where的相關指令/條件
-        $table = DB::table('punch_records')
-            ->whereNotNull("punch_in_time")
-            ->where($condition);
+        $condition = [['record_date', '=', $record_date]];  //放SQL指令裡,where的相關指令/條件
 
-        $table1 = DB::table('punch_records')
-            ->whereNotNull("punch_out_time")
+        //SQL語法1
+        $table = punch_record::whereNotNull("punch_in_time")->where($condition);
+
+        //SQL語法2
+        // $table = DB::table('punch_records')
+        //     ->whereNotNull("punch_in_time")
+        //     ->where($condition);
+
+        //SQL語法1
+        $table1 = punch_record::whereNotNull("punch_out_time")
             ->where($condition)
             ->union($table)
             ->orderByRaw('user_id')
             ->get();
+
+        //SQL語法2
+        // $table1 = DB::table('punch_records')
+        //     ->whereNotNull("punch_out_time")
+        //     ->where($condition)
+        //     ->union($table)
+        //     ->orderByRaw('user_id')
+        //     ->get();
 
         $txt = "";
 
@@ -101,27 +115,45 @@ class MemberController extends Controller
         date_default_timezone_set('Asia/Taipei');   //調整時區為台北
         $now = date("Y-m-d H:i:s");
 
-        $table = DB::table('punch_records')
-            ->where([
-                ['user_id',  $user_id],
-                ['record_date',  $record_date]
-            ])->first();
+        $table = punch_record::where([
+            ['user_id',  $user_id],
+            ['record_date',  $record_date]
+        ])->first();
+
+        // $table = DB::table('punch_records')
+        //     ->where([
+        //         ['user_id',  $user_id],
+        //         ['record_date',  $record_date]
+        //     ])->first();
 
         $column = "";
         $record_id = $table;
 
         //取得員工簽到簽退表單
         if ($select == "get_member") {
-            $punchtable = DB::table('punch_records')
-                ->where('record_date', $record_date);
-            $index = DB::table('members')
-                ->leftJoinSub($punchtable, 'punch_records', function ($join) {
-                    $join->on('members.user_id',  'punch_records.user_id');
-                })
-                ->whereNotNull('members.group_id')
+            //SQL語法1
+            $punchtable = punch_record::where('record_date', $record_date);
+
+            //SQL語法2
+            // $punchtable = DB::table('punch_records')
+            //     ->where('record_date', $record_date);
+
+            //SQL語法1
+            $index = member::leftJoinSub($punchtable, 'punch_records', function ($join) {
+                $join->on('members.user_id',  'punch_records.user_id');
+            })
                 ->orderBy('members.user_id', 'asc')
                 ->select('members.user_id', 'members.name', 'members.group_id', 'punch_records.remarks', 'punch_records.punch_in_time', 'punch_records.punch_out_time')
                 ->get();
+
+            //SQL語法2
+            // $index = DB::table('members')
+            //     ->leftJoinSub($punchtable, 'punch_records', function ($join) {
+            //         $join->on('members.user_id',  'punch_records.user_id');
+            //     })
+            //     ->orderBy('members.user_id', 'asc')
+            //     ->select('members.user_id', 'members.name', 'members.group_id', 'punch_records.remarks', 'punch_records.punch_in_time', 'punch_records.punch_out_time')
+            //     ->get();
 
             $test = "<table class='table table-bordered'><thead>
                 <tr>
