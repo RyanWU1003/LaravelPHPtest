@@ -30,13 +30,14 @@ class MemberController extends Controller
         //指定此方法的response header的內容配置為"附件"
         header('Content-Disposition: attachment; filename="' . $record_date . '打卡紀錄.txt"'); //Content-Disposition: attachment=>網頁內容配置為附件,filename=>檔名設置
 
+        $condition=[['record_date', '=',$record_date]];  //放SQL指令裡,where的相關指令/條件
         $table = DB::table('punch_records')
             ->whereNotNull("punch_in_time")
-            ->where('record_date', $record_date);
+            ->where($condition);
 
         $table1 = DB::table('punch_records')
             ->whereNotNull("punch_out_time")
-            ->where('record_date',  $record_date)
+            ->where($condition)
             ->union($table)
             ->orderByRaw('user_id')
             ->get();
@@ -108,16 +109,16 @@ class MemberController extends Controller
 
         $column = "";
         $record_id = $table;
+
         //取得員工簽到簽退表單
         if ($select == "get_member") {
-            // $test_table=DB::select('select * from punch_records where active = ?', [1]);
             $punchtable = DB::table('punch_records')
                 ->where('record_date', $record_date);
             $index = DB::table('members')
                 ->leftJoinSub($punchtable, 'punch_records', function ($join) {
                     $join->on('members.user_id',  'punch_records.user_id');
                 })
-                ->where('members.group_id', '!=', null)
+                ->whereNotNull('members.group_id')
                 ->orderBy('members.user_id', 'asc')
                 ->select('members.user_id', 'members.name', 'members.group_id', 'punch_records.remarks', 'punch_records.punch_in_time', 'punch_records.punch_out_time')
                 ->get();
